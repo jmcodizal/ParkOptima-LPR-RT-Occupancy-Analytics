@@ -361,8 +361,8 @@ const AttendantDashboard = () => {
                   <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors">
                     Cancel
                   </button>
-                  <button onClick={handleLogout} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-200">
-                    Yes, Log Out
+                  <button onClick={handleLogout} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+>                   Yes, log out
                   </button>
                 </div>
               </div>
