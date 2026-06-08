@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import logo from './logo.png';
 
@@ -6,44 +7,64 @@ const RegisterPage = () => {
   const { roleType } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    fullName: '', email: '', password: '', confirmPassword: '', phoneNumber: ''
+    full_name: '', email: '', password: '', confirm_password: '', phone_number: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const validatePassword = (pass) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return regex.test(pass);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (!formData.fullName || !formData.email || !formData.password || !formData.phoneNumber) {
-      return setError('All fields are required.');
+    if (!formData.full_name || !formData.email || !formData.password || !formData.phone_number) {
+      setError('All fields are required.');
+      setLoading(false);
+      return;
     }
+
     if (!validatePassword(formData.password)) {
-      return setError('Password must be 8+ chars, with uppercase, number, and special char.');
-    }
-    if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match.');
-    }
-    if (!/^\d+$/.test(formData.phoneNumber)) {
-      return setError('Phone number must be numeric only.');
+      setError('Password must be 8+ chars, with uppercase, number, and special character.');
+      setLoading(false);
+      return;
     }
 
-    const newUser = {
-      ...formData,
-      role: roleType,
-      status: 'Active',
-      id: Date.now()
-    };
+    if (formData.password !== formData.confirm_password) {
+      setError('Passwords do not match.');
+      setLoading(false);
+      return;
+    }
 
-    const existing = JSON.parse(localStorage.getItem('parkoptima_users') || '[]');
-    localStorage.setItem('parkoptima_users', JSON.stringify([...existing, newUser]));
+    if (!/^\d+$/.test(formData.phone_number)) {
+      setError('Phone number must be numeric only.');
+      setLoading(false);
+      return;
+    }
 
-    alert('Account created successfully!');
-    navigate('/');
+    try {
+      const response = await axios.post('http://localhost:8000/api/users/register', {
+        full_name: formData.full_name,
+        email: formData.email,
+        password: formData.password,
+        confirm_password: formData.confirm_password,
+        phone_number: formData.phone_number,
+        role: roleType
+      });
+
+      if (response.status === 200) {
+        alert('Account created successfully! Please login.');
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,7 +81,7 @@ const RegisterPage = () => {
           <input
             placeholder="Full Name"
             className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#2D4A8F]"
-            onChange={e => setFormData({...formData, fullName: e.target.value})}
+            onChange={e => setFormData({...formData, full_name: e.target.value})}
           />
           <input
             type="email"
@@ -72,7 +93,7 @@ const RegisterPage = () => {
             type="text"
             placeholder="Phone Number"
             className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#2D4A8F]"
-            onChange={e => setFormData({...formData, phoneNumber: e.target.value})}
+            onChange={e => setFormData({...formData, phone_number: e.target.value})}
           />
           <input
             type="password"
@@ -84,9 +105,15 @@ const RegisterPage = () => {
             type="password"
             placeholder="Confirm Password"
             className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#2D4A8F]"
-            onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+            onChange={e => setFormData({...formData, confirm_password: e.target.value})}
           />
-          <button className="w-full bg-[#2D4A8F] text-white py-3 rounded-lg font-bold">Create Account</button>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-[#2D4A8F] text-white py-3 rounded-lg font-bold disabled:opacity-50"
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
+          </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-500">
           Already have an account? <Link to="/" className="text-[#2D4A8F] font-bold">Login</Link>

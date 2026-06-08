@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { X, Eye, EyeOff } from 'lucide-react';
 import logo from './logo.png';
@@ -24,24 +25,29 @@ const LoginPage = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [resetMessage, setResetMessage] = useState({ text: '', type: '' });
 
-  const handleResetSubmit = (e) => {
+  const handleResetSubmit = async (e) => {
     e.preventDefault();
     setResetMessage({ text: '', type: '' });
+    setLoading(true);
 
-    const registeredUsers = JSON.parse(localStorage.getItem('parkoptima_users') || '[]');
-    const allUsers = [...USERS, ...registeredUsers];
-    
-    const userExists = allUsers.some(u => u.email.toLowerCase() === resetEmail.toLowerCase());
+    try {
+      // Call backend to check if email exists
+      const response = await axios.post('http://localhost:8000/api/auth/forgot-password', {
+        email: resetEmail
+      });
 
-    if (userExists) {
-      setResetMessage({ text: "Reset link sent! Check your email.", type: 'success' });
-      setTimeout(() => {
-        setShowResetModal(false);
-        setResetEmail('');
-        setResetMessage({ text: '', type: '' });
-      }, 2000);
-    } else {
+      if (response.status === 200) {
+        setResetMessage({ text: "Reset link sent! Check your email.", type: 'success' });
+        setTimeout(() => {
+          setShowResetModal(false);
+          setResetEmail('');
+          setResetMessage({ text: '', type: '' });
+        }, 2000);
+      }
+    } catch (err) {
       setResetMessage({ text: "Email not found. Please try again.", type: 'error' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,45 +57,45 @@ const LoginPage = () => {
     setError('');
     setSuccess('');
 
-    // Simulate network delay
-    setTimeout(() => {
-      const targetRole = role.toLowerCase();
-      // Check hardcoded users + any registered users in localStorage
-      const registeredUsers = JSON.parse(localStorage.getItem('parkoptima_users') || '[]');
-      const allUsers = [...USERS, ...registeredUsers];
+    try {
+      const response = await axios.post('http://localhost:8000/api/auth/login', {
+        email,
+        password,
+        role: role.toLowerCase()
+      });
 
-      const user = allUsers.find(u => u.email === email && u.password === password);
-
-      if (user) {
-        if (user.role !== targetRole) {
-          setError(`This account is not registered as ${role}`);
-          setLoading(false);
+      if (response.status === 200) {
+        const { access_token, user_id, full_name, email: userEmail, role: userRole } = response.data;
+        
+        if (rememberMe) {
+          localStorage.setItem('parkoptima_remembered_email', email);
         } else {
-          if (rememberMe) {
-            localStorage.setItem('parkoptima_remembered_email', email);
-          } else {
-            localStorage.removeItem('parkoptima_remembered_email');
-          }
-
-          setSuccess('Sign in successful! Redirecting...');
-          localStorage.setItem('parkoptima_session', JSON.stringify({
-            ...user,
-            isLoggedIn: true,
-            loginTime: Date.now()
-          }));
-          
-          setTimeout(() => {
-            if (user.role === 'owner') navigate('/owner/dashboard');
-            else if (user.role === 'attendant') navigate('/attendant/dashboard');
-            else navigate('/');
-          }, 1500);
+          localStorage.removeItem('parkoptima_remembered_email');
         }
-      } else {
-        setError('Invalid email or password.');
+        
+        localStorage.setItem('parkoptima_session', JSON.stringify({
+          user_id,
+          full_name,
+          email: userEmail,
+          role: userRole,
+          access_token,
+          isLoggedIn: true,
+          loginTime: Date.now()
+        }));
+        
+        setSuccess('Sign in successful! Redirecting...');
+        
+        setTimeout(() => {
+          if (userRole === 'owner') navigate('/owner/dashboard');
+          else if (userRole === 'attendant') navigate('/attendant/dashboard');
+          else navigate('/');
+        }, 1500);
       }
-      
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Invalid email or password.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -149,7 +155,10 @@ const LoginPage = () => {
                 <h2 className="text-[#4DB6AC] font-extrabold text-lg mb-1">Welcome, Vehicle Owner!</h2>
                 <p className="text-gray-600 text-sm">Access your parking account or create a new one</p>
               </div>
-              <button className="w-full bg-[#2D4A8F] text-white py-3 rounded-lg font-bold hover:bg-[#243b72] transition-colors shadow-md">
+              <button 
+                onClick={() => navigate('/check-balance')}
+                className="w-full bg-[#2D4A8F] text-white py-3 rounded-lg font-bold hover:bg-[#243b72] transition-colors shadow-md"
+              >
                 Check Balance
               </button>
             </div>
