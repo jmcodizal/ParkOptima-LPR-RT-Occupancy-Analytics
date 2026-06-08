@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import logo from './logo.png';
 import { 
@@ -78,8 +79,21 @@ const OwnerDashboard = () => {
     }
 
     // Load users from registration
-    const userData = JSON.parse(localStorage.getItem('parkoptima_users') || '[]');
-    setUsers(userData);
+    const fetchUsers = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem('parkoptima_session'));
+        const response = await axios.get('http://localhost:8000/api/users/', {
+          headers: { Authorization: `Bearer ${session?.access_token}` }
+        });
+        setUsers(response.data);
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+        // Fallback to localStorage if API fails
+        const userData = JSON.parse(localStorage.getItem('parkoptima_users') || '[]');
+        setUsers(userData);
+      }
+    };
+    fetchUsers();
 
     // Load profile from local storage
     const storedProfile = JSON.parse(localStorage.getItem('parkoptima_owner_profile'));

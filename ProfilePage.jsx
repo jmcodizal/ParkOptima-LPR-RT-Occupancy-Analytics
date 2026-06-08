@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const ProfilePage = () => {
@@ -13,23 +14,32 @@ const ProfilePage = () => {
     setFormData({ fullName: session.fullName, email: session.email, phoneNumber: session.phoneNumber || '' });
   }, []);
 
-  const handleUpdate = (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    const updatedUser = { ...user, ...formData };
     
-    // Update session
-    localStorage.setItem('parkoptima_session', JSON.stringify(updatedUser));
-    
-    // Update persistent user list if not a hardcoded user
-    const users = JSON.parse(localStorage.getItem('parkoptima_users') || '[]');
-    const index = users.findIndex(u => u.id === user.id);
-    if (index !== -1) {
-      users[index] = updatedUser;
-      localStorage.setItem('parkoptima_users', JSON.stringify(users));
+    try {
+      const session = JSON.parse(localStorage.getItem('parkoptima_session'));
+      const response = await axios.put(
+        `http://localhost:8000/api/users/${user.user_id}`,
+        {
+          full_name: formData.fullName,
+          email: formData.email
+        },
+        {
+          headers: { Authorization: `Bearer ${session?.access_token}` }
+        }
+      );
+      
+      if (response.status === 200) {
+        // Update session with new data
+        const updatedSession = { ...session, full_name: formData.fullName, email: formData.email };
+        localStorage.setItem('parkoptima_session', JSON.stringify(updatedSession));
+        alert('Profile updated successfully!');
+        navigate(-1);
+      }
+    } catch (err) {
+      alert('Failed to update profile. Please try again.');
     }
-
-    alert('Profile updated successfully!');
-    navigate(-1);
   };
 
   return (
