@@ -6,6 +6,7 @@ import OwnerDashboard from './OwnerDashboard';
 import AttendantDashboard from './AttendantDashboard';
 import ProfilePage from './ProfilePage';
 import CheckBalanceFlow from './CheckBalanceFlow';
+import ResetPasswordPage from './ResetPasswordPage';
 
 const ProtectedRoute = ({ children, allowedRole }) => {
   const session = JSON.parse(localStorage.getItem('parkoptima_session'));
@@ -31,6 +32,7 @@ const App = () => {
       <Route path="/owner/dashboard" element={<ProtectedRoute allowedRole="owner"><OwnerDashboard /></ProtectedRoute>} />
       <Route path="/attendant/dashboard" element={<ProtectedRoute allowedRole="attendant"><AttendantDashboard /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

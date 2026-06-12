@@ -53,10 +53,21 @@ const AttendantDashboard = () => {
     }
   }, []);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
+  const handleLogout = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('parkoptima_session'));
+      if (session?.access_token) {
+        await axios.post('http://localhost:8000/api/auth/logout', {}, {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+      }
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      localStorage.clear();
+      navigate('/');
+    }
+  }
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
