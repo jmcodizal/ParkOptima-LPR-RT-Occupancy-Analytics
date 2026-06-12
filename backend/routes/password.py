@@ -9,6 +9,10 @@ from email.mime.multipart import MIMEMultipart
 import secrets
 from datetime import datetime, timedelta
 import bcrypt
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -20,8 +24,8 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 def send_reset_email(recipient_email: str, reset_token: str):
-    sender_email = "parkoptima.capstone@gmail.com"  
-    sender_password = "ukrw jfet wjvk ynsa"
+    sender_email = os.getenv("SMTP_EMAIL")
+    sender_password = os.getenv("SMTP_PASSWORD")
     sender_name = "ParkOptima Support"   
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
