@@ -4,9 +4,10 @@ venv/
 __pycache__/
 *.pyc
 
-# Environment files
+# Environment variables
 .env
-*.local
+.env.local
+.env.*.local
 
 # IDE
 .vscode/

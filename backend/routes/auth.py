@@ -1,15 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import jwt
 import os
+from dotenv import load_dotenv
 from database import get_db
 from crud_user import get_user_by_email, verify_password
 
+load_dotenv()
+
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-SECRET_KEY = "parkoptima-secret-key-change-in-production"
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 class LoginRequest(BaseModel):
     email: str
@@ -48,6 +52,18 @@ def login(login: LoginRequest, db: Session = Depends(get_db)):
     db.commit()
     
     token = create_access_token(data={"sub": user.email, "role": user_role})
+
+    db.execute(
+        text("""
+            INSERT INTO sessions (user_id, token, is_active)
+            VALUES (:user_id, :token, TRUE)
+        """),
+        {
+            "user_id": user.user_id,
+            "token": token
+        }
+    )
+    db.commit()
     
     return LoginResponse(
         access_token=token,
@@ -57,23 +73,3 @@ def login(login: LoginRequest, db: Session = Depends(get_db)):
         email=user.email,
         role=user_role
     )
-
-@router.post("/login", response_model=LoginResponse)
-def login(login: LoginRequest, db: Session = Depends(get_db)):
-    print(f"Looking for email: {login.email}")
-    
-    user = get_user_by_email(db, login.email)
-    
-    if not user:
-        print(f"User not found: {login.email}")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    print(f"User found: {user.email}, role: {user.role}")
-    print(f"Password from DB: {user.password_hash}")
-    print(f"Password from request: {login.password}")
-    
-    if not verify_password(login.password, user.password_hash):
-        print("Password verification failed")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    print("Password verified!")

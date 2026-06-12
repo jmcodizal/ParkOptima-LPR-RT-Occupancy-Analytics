@@ -115,9 +115,22 @@ const OwnerDashboard = () => {
     }
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('parkoptima_session');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('parkoptima_session'));
+      if (session?.access_token) {
+        await axios.post('http://localhost:8000/api/auth/logout', {}, {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        console.log('Logout successful');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('parkoptima_session');
+      localStorage.removeItem('parkoptima_remembered_email');
+      navigate('/');
+    }
   };
 
   const handleDeleteUser = (id) => {
